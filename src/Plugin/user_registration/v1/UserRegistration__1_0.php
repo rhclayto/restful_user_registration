@@ -22,9 +22,6 @@ use Drupal\restful\Exception\BadRequestException;
  *   resource = "user-registration",
  *   label = "User Registration",
  *   description = "An endpoint for registering users.",
- *   authenticationTypes = {
- *      "null",
- *   },
  *   authenticationOptional = TRUE,
  *   dataProvider = {
  *     "entityType": "user",
