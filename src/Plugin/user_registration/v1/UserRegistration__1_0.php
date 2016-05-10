@@ -11,9 +11,6 @@ use Drupal\restful\Http\RequestInterface;
 use Drupal\restful\Http\Request;
 use Drupal\restful\Plugin\resource\Resource;
 use Drupal\restful\Plugin\resource\ResourceInterface;
-// use Drupal\restful\Plugin\resource\Field\ResourceField;
-// use Drupal\restful\Plugin\resource\Field\ResourceFieldBase;
-// use Drupal\restful\Plugin\resource\Field\ResourceFieldInterface;
 use Drupal\restful\Exception\BadRequestException;
 
 /**
