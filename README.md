@@ -28,4 +28,6 @@ Error messages from Drupal will be captured & returned by RESTful as field error
   }
   ```
   
+  On success it returns the UID.
+  
   Whatever Drupal does when registering through Services should also be done automatically when registering through this resource, such as sending welcome e-mails, etc.
