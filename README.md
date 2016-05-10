@@ -5,7 +5,7 @@ This module creates a user registration resource & endpoint for the Drupal RESTf
 
 It uses the guts of the Services module's user registration function, but modified to work within the context of RESTful resources.
 
-It accepts user name, password, & e-mail address, JSON encoded in the body of a POST request to the <restful_api_path>/user-registration endpoint. For example: https:example.org/api/user-registration. Like so:
+It accepts user name, password, & e-mail address, JSON encoded in the body of a POST request to the <restful_api_path>/user-registration endpoint. For example: https://example.org/api/user-registration. Like so:
 
 ```json
 {
