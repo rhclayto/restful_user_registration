@@ -11,7 +11,7 @@ use Drupal\restful\Http\RequestInterface;
 use Drupal\restful\Http\Request;
 use Drupal\restful\Plugin\resource\Resource;
 use Drupal\restful\Plugin\resource\ResourceInterface;
-use Drupal\restful\Exception\BadRequestException;
+use Drupal\restful\Exception\UnprocessableEntityException;
 
 /**
  * Class UserRegistration
@@ -45,9 +45,6 @@ class UserRegistration__1_0 extends Resource implements ResourceInterface {
       '' => array(
         RequestInterface::METHOD_POST => 'addAccount',
       ),
-      '^.*$' => array(
-        RequestInterface::PUT => 'updateAccount',
-      )
     );
   }
   
@@ -60,112 +57,81 @@ class UserRegistration__1_0 extends Resource implements ResourceInterface {
 
   /**
    * Add user account into Drupal.
+   * Filched from the Services module's user_resource.inc.
    */
   public function addAccount() {
-    $account = $this->getAccount();
-
-    // Check if the account has access to register a user.
-    if (!user_access('allowed to register user account', $account)) {
-      throw new BadRequestException(
-        "Account doesn't have access to register user."
-      );
-    }
-    $account = new \stdClass();
-    $account->is_new = TRUE;
-
-    $user = $this->saveUserAccount($account);
-
-    // Check to make sure we didn't fail when saving the user.
-    if (FALSE === $user) {
-      throw new BadRequestException('Adding user failed.');
-    }
-
-    return array($user);
-  }
-
-  /**
-   * Update user account in Drupal.
-   */
- public function updateAccount($uid) {
-    if (!isset($uid)) {
-      throw new BadRequestException('User identifier is missing.');
-    }
-    $account = $this->getAccount();
-
-    // Check if the account has access to update a user.
-    if (!user_access('allowed to update user account', $account)) {
-      throw new BadRequestException(
-        "Account doesn't have access to update user."
-      );
-    }
-    $account = user_load($uid);
-
-    if (FALSE === $account) {
-      throw new BadRequestException("Account doesn't exist.");
-    }
-
-    $user = $this->saveUserAccount($account);
-
-    // Check to make sure we didn't fail when saving the user.
-    if (FALSE === $user) {
-      throw new BadRequestException('Updating user failed.');
-    }
-
-    return [$user];
-  }
-
-  /**
-   * Save the user account based on request.
-   *
-   * @return array
-   *   An array of the saved user object; otherwise FALSE if failed.
-   */
-  protected function saveUserAccount($account) {
-    if (!is_object($account)) {
-      return FALSE;
-    }
     $request_body = $this->getRequest()->getParsedBody();
 
     // Check if the request has the valid parameters defined.
     if (!$this->isValidateRequest($request_body)) {
-      throw new BadRequestException('Missing required parameters.');
+      throw new UnprocessableEntityException('Missing required parameters.');
     }
+    
     $name = $request_body['name'];
     $pass = $request_body['pass'];
     $mail = $request_body['mail'];
-
-    // Load the user object by account name.
-    $object = user_load_by_name($name);
-
-    if ((isset($account->is_new) && $account->is_new) ||
-      ($object->uid !== $account->uid)) {
-
-      if (FALSE !== $object) {
-        throw new BadRequestException('Account name already exists.');
-      }
-    }
-
-    $edit = array(
-      'name'   => $name,
-      'pass'   => $pass,
-      'mail'   => $mail,
-      'init'   => $mail,
-      'status' => TRUE,
+    
+    $account = array(
+      'name' => $name,
+      'mail' => $mail,
+      'pass' => $pass,
     );
-    $roles = user_roles(TRUE);
 
-    // Attach the valid roles to the user account based on the id.
-    if (isset($request_body['roles']) && !empty($request_body['roles'])) {
-      foreach ($request_body['roles'] as $id) {
-        if (!isset($roles[$id])) {
-          continue;
-        }
-        $edit['roles'][$id] = $roles[$id];
+    // Load the required includes for saving profile information
+    // with drupal_form_submit().
+    module_load_include('inc', 'user', 'user.pages');
+
+    // Register a new user.
+    $form_state['values'] = $account;
+
+    // Determine the password(s). Passwords may not be available as this callback
+    // is used for registration as well.
+    $pass1 = '';
+    $pass2 = '';
+    if (isset($account['pass'])) {
+      // For legacy usage, passwords come in as a single string. To match the
+      // actual form state value keys used by Drupal, we also can collect two
+      // passwords via an array.
+      if (is_array($account['pass'])) {
+        $pass1 = $account['pass']['pass1'];
+        $pass2 = $account['pass']['pass2'];
+      }
+      else {
+        $pass1 = $account['pass'];
+        $pass2 = $account['pass'];
       }
     }
+    $form_state['values']['pass'] = array(
+      'pass1' => $pass1,
+      'pass2' => $pass2
+    );
 
-    // Save the account in Drupal.
-    return user_save($account, $edit);
+    // Set the form state op.
+    $form_state['values']['op'] = t('Create new account');
+
+    // Execute the register form.
+    $form_state['programmed_bypass_access_check'] = FALSE;
+
+    drupal_form_submit('user_register_form', $form_state);
+    // find and store the new user into the form_state
+    if(isset($form_state['values']['uid'])) {
+      $form_state['user'] = user_load($form_state['values']['uid']);
+    }
+
+    // Error if needed.
+    if ($errors = form_get_errors()) {
+      $exception = new UnprocessableEntityException('There were errors in your submission.');
+      foreach ($errors as $field => $message) {
+        $output = strip_tags($message);
+
+        $exception->addFieldError($field, $output);
+      }
+      throw $exception;
+    }
+    else {
+      $user = array('uid' => $form_state['user']->uid);
+      return $user;
+    }
   }
 
   /**
