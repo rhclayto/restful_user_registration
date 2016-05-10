@@ -10,8 +10,8 @@ It accepts user name, password, & e-mail address, JSON encoded in the body of a 
 ```json
 {
   "name":"<some_name>",
-  "pass":"<some_pass>",
-  "mail":"<some_email"
+  "pass":"<some_password>",
+  "mail":"<some_email>"
 }
 ```
 
