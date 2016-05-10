@@ -15,7 +15,7 @@ use Drupal\restful\Exception\UnprocessableEntityException;
 
 /**
  * Class UserRegistration
- * @package \Drupal\restful_resources\Plugin\resource
+ * @package \Drupal\restful_user_registration\Plugin\resource
  *
  * @Resource(
  *   name = "user-registration:1.0",
